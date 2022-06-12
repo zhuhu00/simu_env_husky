@@ -33,20 +33,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <xacro:arg name="laser_secondary_xyz" default="$(optenv HUSKY_LMS1XX_SECONDARY_XYZ -0.2206 0.0 0.00635)" />
   <xacro:arg name="laser_secondary_rpy" default="$(optenv HUSKY_LMS1XX_SECONDARY_RPY 0.0 0.0 3.14159)" />
 
-  <xacro:arg name="laser_ust10_front_enabled" default="$(optenv HUSKY_UST10_ENABLED 0)" />
-  <xacro:arg name="laser_ust10_front_prefix"  default="$(optenv HUSKY_UST10_PREFIX front)" />
-  <xacro:arg name="laser_ust10_front_parent"  default="$(optenv HUSKY_UST10_PARENT top_plate_link)" />
-  <xacro:arg name="laser_ust10_front_topic"   default="$(optenv HUSKY_UST10_TOPIC front/scan)" />
-  <xacro:arg name="laser_ust10_front_xyz"     default="$(optenv HUSKY_UST10_XYZ 0.2206 0.0 0.00635)" />
-  <xacro:arg name="laser_ust10_front_rpy"     default="$(optenv HUSKY_UST10_RPY 0 0 0)" />
-
-  <xacro:arg name="laser_ust10_rear_enabled"  default="$(optenv HUSKY_UST10_SECONDARY_ENABLED 0)" />
-  <xacro:arg name="laser_ust10_rear_prefix"   default="$(optenv HUSKY_UST10_SECONDARY_PREFIX rear)" />
-  <xacro:arg name="laser_ust10_rear_parent"   default="$(optenv HUSKY_UST10_SECONDARY_PARENT top_plate_link)" />
-  <xacro:arg name="laser_ust10_rear_topic"    default="$(optenv HUSKY_UST10_SECONDARY_TOPIC rear/scan)" />
-  <xacro:arg name="laser_ust10_rear_xyz"      default="$(optenv HUSKY_UST10_SECONDARY_XYZ -0.2206 0.0 0.00635)" />
-  <xacro:arg name="laser_ust10_rear_rpy"      default="$(optenv HUSKY_UST10_SECONDARY_RPY 0 0 3.14159)" />
-
   <xacro:arg name="laser_3d_enabled" default="$(optenv HUSKY_LASER_3D_ENABLED 1)" />
   <xacro:arg name="laser_3d_xyz" default="$(optenv HUSKY_LASER_3D_XYZ 0 0 0)" />
   <xacro:arg name="laser_3d_rpy" default="$(optenv HUSKY_LASER_3D_RPY 0 0 0)" />
@@ -65,7 +51,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
   <xacro:arg name="robot_namespace" default="$(optenv ROBOT_NAMESPACE /)" />
   <xacro:arg name="urdf_extras" default="$(optenv HUSKY_URDF_EXTRAS empty.urdf)" />
-  <xacro:arg name="cpr_urdf_extras" default="$(optenv CPR_URDF_EXTRAS empty.urdf)" />
 
   <!-- Included URDF/XACRO Files -->
   <xacro:include filename="$(find husky_description)/urdf/decorations.urdf.xacro" />
@@ -74,10 +59,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <xacro:include filename="$(find husky_description)/urdf/accessories/intel_realsense.urdf.xacro"/>
   <xacro:include filename="$(find husky_description)/urdf/accessories/sick_lms1xx_mount.urdf.xacro"/>
   <xacro:include filename="$(find husky_description)/urdf/accessories/sensor_arch.urdf.xacro"/>
-  <xacro:include filename="$(find husky_description)/urdf/accessories/hokuyo_ust10.urdf.xacro"/>
   <xacro:include filename="$(find husky_description)/urdf/accessories/vlp16_mount.urdf.xacro"/>
   <xacro:include filename="$(find husky_description)/urdf/accessories/vlp32_mount.urdf.xacro"/>
-  <xacro:include filename="$(find velodyne_description)/urdf/HDL-32E.urdf.xacro"/>
 
   <xacro:property name="M_PI" value="3.14159"/>
 
@@ -145,12 +128,175 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <!-- Can be modified with environment variables in /etc/ros/setup.bash -->
   <link name="imu_link"/>
   <joint name="imu_joint" type="fixed">
-    <origin xyz="$(optenv HUSKY_IMU_XYZ 0.19 0 0.149)" rpy="$(optenv HUSKY_IMU_RPY 0 -1.5708 3.1416)" />
+    <origin xyz="$(optenv HUSKY_IMU_XYZ 0.0 0 0.0)" rpy="$(optenv HUSKY_IMU_RPY 0 -1.5708 3.1416)" />
+    <!--<origin xyz="$(optenv HUSKY_IMU_XYZ 0.19 0 0.149)" rpy="$(optenv HUSKY_IMU_RPY 0 -1.5708 3.1416)" />-->
     <parent link="base_link" />
     <child link="imu_link" />
   </joint>
   <gazebo reference="imu_link">
   </gazebo>
+
+
+  <!-- left link test -->
+  <link name="left_link"/>
+
+  <joint name="left_joint" type="fixed">
+    <origin xyz="0.4 0.25 0.5" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="left_link" />
+  </joint>
+
+  <!-- camera -->
+  <gazebo reference="left_link">
+    <turnGravityOff>true</turnGravityOff>
+    <sensor type="camera" name="camera1">
+      <update_rate>10</update_rate>
+      <camera name="left">
+        <horizontal_fov>2.0</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>L8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+       <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>left</cameraName>
+        <imageTopicName>image</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>left_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- right link test -->
+  <link name="right_link"/>
+
+  <joint name="right_joint" type="fixed">
+    <origin xyz="0.4 -0.25 0.5" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="right_link" />
+  </joint>
+
+  <!-- camera -->
+  <gazebo reference="right_link">
+    <turnGravityOff>true</turnGravityOff>
+    <sensor type="camera" name="camera1">
+      <update_rate>10</update_rate>
+      <camera name="right">
+        <horizontal_fov>2.0</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>L8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+       <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>right</cameraName>
+        <imageTopicName>image</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>right_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+    <!-- middle link test -->
+    <link name="middle_link"/>
+
+    <joint name="middle_joint" type="fixed">
+      <origin xyz="0.4 0.0 0.5" rpy="0 0 0" />
+      <parent link="base_link" />
+      <child link="middle_link" />
+    </joint>
+  
+    <!-- camera -->
+    <gazebo reference="middle_link">
+      <turnGravityOff>true</turnGravityOff>
+      <sensor type="camera" name="camera1">
+        <update_rate>10</update_rate>
+        <camera name="middle">
+          <horizontal_fov>2.0</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <!-- Noise is sampled independently per pixel on each frame.
+                 That pixel's noise value is added to each of its color
+                 channels, which at that point lie in the range [0,1]. -->
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+         <alwaysOn>true</alwaysOn>
+          <updateRate>0.0</updateRate>
+          <cameraName>middle</cameraName>
+          <imageTopicName>image</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>middle_link</frameName>
+          <hackBaseline>0.07</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+
+  
+
+  <!-- <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
+  <VLP-16 parent="base_link" name="velodyne" topic="/points_raw" hz="10" samples="440" gpu="false">
+    <origin xyz="0.4 0 0.5" rpy="0 0 0" />
+  </VLP-16> -->
 
   <!-- Husky wheel macros -->
   <xacro:husky_wheel wheel_prefix="front_left">
@@ -194,20 +340,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
     </joint>
   </xacro:if>
 
-  <!-- 
-    Add front and back hokuyo UST10 Lidars
-  -->
-  <xacro:if value="$(arg laser_ust10_front_enabled)">
-    <xacro:hokuyo_ust10_mount topic="$(arg laser_ust10_front_topic)" prefix="$(arg laser_ust10_front_prefix)" parent_link="$(arg laser_ust10_front_parent)">
-        <origin xyz="$(arg laser_ust10_front_xyz)" rpy="$(arg laser_ust10_front_rpy)" />
-      </xacro:hokuyo_ust10_mount>
-  </xacro:if>
-  <xacro:if value="$(arg laser_ust10_rear_enabled)">
-    <xacro:hokuyo_ust10_mount topic="$(arg laser_ust10_rear_topic)" prefix="$(arg laser_ust10_rear_prefix)" parent_link="$(arg laser_ust10_rear_parent)">
-        <origin xyz="$(arg laser_ust10_rear_xyz)" rpy="$(arg laser_ust10_rear_rpy)" />
-      </xacro:hokuyo_ust10_mount>
-  </xacro:if>
-
   <!--
     Add the main sensor arch if the user has specifically enabled it, or if a sensor
     requires it for mounting
@@ -249,7 +381,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
       <origin xyz="$(arg laser_3d_xyz)" rpy="$(arg laser_3d_rpy)" />
     </xacro:vlp32_mount>
   </xacro:if> -->
-
+  
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>$(arg robot_namespace)</robotNamespace>
@@ -264,11 +396,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
       <bodyName>base_link</bodyName>
       <topicName>imu/data</topicName>
       <accelDrift>0.005 0.005 0.005</accelDrift>
-      <accelGaussianNoise>0.005 0.005 0.005</accelGaussianNoise>
-      <rateDrift>0.005 0.005 0.005 </rateDrift>
-      <rateGaussianNoise>0.005 0.005 0.005 </rateGaussianNoise>
-      <headingDrift>0.005</headingDrift>
-      <headingGaussianNoise>0.005</headingGaussianNoise>
+      <accelGaussianNoise>0.05 0.05 0.05</accelGaussianNoise>
+      <!-- <rateDrift>0.005 0.005 0.005 </rateDrift> -->
+      <!-- <rateGaussianNoise>0.005 0.005 0.005 </rateGaussianNoise> -->
+      <!-- <headingDrift>0.005</headingDrift> -->
+      <!-- <headingGaussianNoise>0.005</headingGaussianNoise> -->
     </plugin>
   </gazebo>
 
@@ -288,10 +420,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
     </plugin>
   </gazebo>
 
+    <!-- Fake localization plugin -->
+  <gazebo>
+    <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>100.0</updateRate>
+      <bodyName>base_link</bodyName>
+      <topicName>ground_truth/state</topicName>
+      <gaussianNoise>0.01</gaussianNoise>
+      <frameName>map</frameName>
+      <xyzOffsets>0 0 0</xyzOffsets>
+      <rpyOffsets>0 0 0</rpyOffsets>
+    </plugin>
+  </gazebo>
+
   <!-- Optional custom includes. -->
   <xacro:include filename="$(arg urdf_extras)" />
-
-  <!-- Optional for Clearpath internal softwares -->
-  <xacro:include filename="$(arg cpr_urdf_extras)" />
 
 </robot>
